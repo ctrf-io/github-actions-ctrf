@@ -41,10 +41,6 @@ export function generateTestDetailsTable(tests: CtrfTest[]): void {
         `Note: You have a lot of tests. We've limited the number shown in the detailed breakdown to ${maxRows}.`
       )
     }
-    core.summary.addLink(
-      'Github Actions Test Reporter CTRF',
-      'https://github.com/ctrf-io/github-actions-test-reporter-ctrf'
-    )
   } catch (error) {
     if (error instanceof Error) {
       core.setFailed(`Failed to append to job summary: ${error.message}`)
@@ -80,10 +76,6 @@ export function generateFlakyTestsDetailsTable(tests: CtrfTest[]): void {
 
       core.summary
         .addTable([headers, ...rows])
-        .addLink(
-          'Github Actions Test Reporter CTRF',
-          'https://github.com/ctrf-io/github-actions-test-reporter-ctrf'
-        )
     } else {
       core.summary.addRaw('No flaky tests detected. ✨')
     }
@@ -119,10 +111,6 @@ export function generateFailedTestsDetailsTable(tests: CtrfTest[]) {
             },
           ]),
         ])
-        .addLink(
-          'Github Actions Test Reporter CTRF',
-          'https://github.com/ctrf-io/github-actions-test-reporter-ctrf'
-        )
     } else {
       core.summary.addRaw('No failed tests ✨')
     }
@@ -153,10 +141,6 @@ export function generateAIFailedTestsSummaryTable(tests: CtrfTest[]) {
             { data: `${test.ai || 'No summary'}`, header: false },
           ]),
         ])
-        .addLink(
-          'Github Actions Test Reporter CTRF',
-          'https://github.com/ctrf-io/github-actions-test-reporter-ctrf'
-        )
     } else {
       core.summary.addRaw('No failed tests ✨')
     }
@@ -203,10 +187,6 @@ export function generateSummaryDetailsTable(report: CtrfReport): void {
           durationFormatted,
         ],
       ])
-      .addLink(
-        'Github Actions Test Reporter CTRF',
-        'https://github.com/ctrf-io/github-actions-test-reporter-ctrf'
-      )
   } catch (error) {
     if (error instanceof Error) {
       core.setFailed(`Failed to append to job summary: ${error.message}`)
@@ -256,7 +236,35 @@ export function annotateFailed(report: CtrfReport): void {
 }
 
 export function write(): void {
-  core.summary.write()
+  try {
+    checkForExistingLink()
+    core.summary.addLink(
+      'Github Actions Test Reporter CTRF',
+      'https://github.com/ctrf-io/github-actions-test-reporter-ctrf'
+    )
+    core.summary.write()
+  } catch (error) {
+    if (error instanceof Error) {
+      core.setFailed(`Failed to write summary: ${error.message}`)
+    } else {
+      core.setFailed('An unknown error occurred')
+    }
+  }
+}
+
+
+function checkForExistingLink() {
+  const summaryContent = core.summary.stringify()
+  const linkText = 'Github Actions Test Reporter CTRF'
+  const linkUrl = 'https://github.com/ctrf-io/github-actions-test-reporter-ctrf'
+  const linkHtml = `<a href="${linkUrl}">${linkText}</a>`
+
+  if (summaryContent.includes(linkHtml)) {
+    const updatedSummary = summaryContent.replace(new RegExp(linkHtml, 'g'), '')
+
+    core.summary.clear()
+    core.summary.addRaw(updatedSummary)
+  }
 }
 
 function getEmojiForStatus(status: CtrfTestState): string {
