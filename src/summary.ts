@@ -255,9 +255,11 @@ export function write(): void {
 
 function checkForExistingLink() {
   const summaryContent = core.summary.stringify()
+  console.log("Summary Content:" + summaryContent)
   const linkText = 'Github Actions Test Reporter CTRF'
   const linkUrl = 'https://github.com/ctrf-io/github-actions-test-reporter-ctrf'
   const linkHtml = `<a href="${linkUrl}">${linkText}</a>`
+  // <a href="https://github.com/ctrf-io/github-actions-test-reporter-ctrf">Github Actions Test Reporter CTRF</a>
 
   if (summaryContent.includes(linkHtml)) {
     const updatedSummary = summaryContent.replace(new RegExp(linkHtml, 'g'), '')
