@@ -55,22 +55,24 @@ export async function uploadArtifact(
  * @param owner - The owner of the repository.
  * @param repo - The name of the repository.
  * @param runId - The ID of the workflow run.
+ * @param name - Optional artifact name to filter on server side.
  * @returns An array of artifacts.
  */
 export async function fetchArtifacts(
 	owner: string,
 	repo: string,
 	runId: number,
+	name?: string,
 ): Promise<Artifact[]> {
 	const octokit = await createGitHubClient();
 
-	const response = await octokit.actions.listWorkflowRunArtifacts({
+	return octokit.paginate(octokit.actions.listWorkflowRunArtifacts, {
 		owner,
 		repo,
 		run_id: runId,
+		per_page: 100,
+		...(name ? { name } : {}),
 	});
-
-	return response.data.artifacts;
 }
 
 /**
@@ -110,6 +112,7 @@ export async function processArtifactsFromRun(
 		context.repo.owner,
 		context.repo.repo,
 		workflowRun.id,
+		artifactName,
 	);
 	for (const artifact of artifacts) {
 		if (artifact.name === artifactName) {

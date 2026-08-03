@@ -183263,14 +183263,15 @@ async function uploadArtifact2(artifactName, report, tempDir = "./temp") {
     }
   }
 }
-async function fetchArtifacts(owner, repo, runId) {
+async function fetchArtifacts(owner, repo, runId, name) {
   const octokit = await createGitHubClient();
-  const response = await octokit.actions.listWorkflowRunArtifacts({
+  return octokit.paginate(octokit.actions.listWorkflowRunArtifacts, {
     owner,
     repo,
-    run_id: runId
+    run_id: runId,
+    per_page: 100,
+    ...name ? { name } : {}
   });
-  return response.data.artifacts;
 }
 async function downloadArtifact(downloadUrl) {
   const octokit = await createGitHubClient();
@@ -183291,7 +183292,8 @@ async function processArtifactsFromRun(workflowRun, artifactName) {
   const artifacts = await fetchArtifacts(
     context2.repo.owner,
     context2.repo.repo,
-    workflowRun.id
+    workflowRun.id,
+    artifactName
   );
   for (const artifact of artifacts) {
     if (artifact.name === artifactName) {
