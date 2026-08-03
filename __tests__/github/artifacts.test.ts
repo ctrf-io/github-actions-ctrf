@@ -63,29 +63,31 @@ function createArtifact(id: number, name: string): Artifact {
 	} as Artifact;
 }
 
-function createZippedReport(): Buffer {
+function createZippedReport(corrupt = false): Buffer {
 	const zip = new AdmZip();
 	zip.addFile(
 		"ctrf-report.json",
 		Buffer.from(
-			JSON.stringify({
-				reportFormat: "CTRF",
-				specVersion: "1.0.0",
-				results: {
-					tool: { name: "vitest" },
-					summary: {
-						tests: 1,
-						passed: 1,
-						failed: 0,
-						skipped: 0,
-						pending: 0,
-						other: 0,
-						start: 0,
-						stop: 1,
-					},
-					tests: [{ name: "test1", status: "passed", duration: 1 }],
-				},
-			}),
+			corrupt
+				? "{ not json"
+				: JSON.stringify({
+						reportFormat: "CTRF",
+						specVersion: "1.0.0",
+						results: {
+							tool: { name: "vitest" },
+							summary: {
+								tests: 1,
+								passed: 1,
+								failed: 0,
+								skipped: 0,
+								pending: 0,
+								other: 0,
+								start: 0,
+								stop: 1,
+							},
+							tests: [{ name: "test1", status: "passed", duration: 1 }],
+						},
+					}),
 		),
 	);
 	return zip.toBuffer();
@@ -106,10 +108,21 @@ function respond(url: string, body: BodyInit, init: ResponseInit): Response {
  * Serves the artifacts list endpoint the way GitHub does: one page per request,
  * with the next page offered through a Link header only.
  * @param artifacts - The artifacts the run holds.
- * @param honoursNameFilter - False models an API too old to know the `name`
- * query parameter, which then returns the whole run.
+ * @param options.honoursNameFilter - False models an API too old to know the
+ * `name` query parameter, which then returns the whole run.
+ * @param options.goneIds - Artifact ids whose download answers 410, as GitHub
+ * does once retention has passed.
+ * @param options.corruptIds - Artifact ids whose zip holds unparseable JSON.
  */
-function createArtifactsApi(artifacts: Artifact[], honoursNameFilter = true) {
+function createArtifactsApi(
+	artifacts: Artifact[],
+	options: {
+		honoursNameFilter?: boolean;
+		goneIds?: number[];
+		corruptIds?: number[];
+	} = {},
+) {
+	const { honoursNameFilter = true, goneIds = [], corruptIds = [] } = options;
 	const listed: URL[] = [];
 	const downloaded: string[] = [];
 
@@ -146,10 +159,20 @@ function createArtifactsApi(artifacts: Artifact[], honoursNameFilter = true) {
 
 		if (url.pathname.endsWith("/zip")) {
 			downloaded.push(url.pathname);
-			return respond(input, new Uint8Array(createZippedReport()), {
-				status: 200,
-				headers: { "content-type": "application/zip" },
-			});
+			const id = Number(url.pathname.split("/").at(-2));
+
+			if (goneIds.includes(id)) {
+				return respond(input, JSON.stringify({ message: "Gone" }), {
+					status: 410,
+					headers: { "content-type": "application/json" },
+				});
+			}
+
+			return respond(
+				input,
+				new Uint8Array(createZippedReport(corruptIds.includes(id))),
+				{ status: 200, headers: { "content-type": "application/zip" } },
+			);
 		}
 
 		return respond(input, "[]", {
@@ -236,6 +259,59 @@ describe("processArtifactsFromRun", () => {
 		expect(api.downloaded).toEqual(["/artifacts/2/zip"]);
 	});
 
+	it("should skip artifacts whose retention has expired", async () => {
+		const api = createArtifactsApi([
+			{ ...createArtifact(1, ARTIFACT_NAME), expired: true },
+			createArtifact(2, ARTIFACT_NAME),
+		]);
+		stub.fetch = api.fetch;
+
+		const reports = await processArtifactsFromRun(
+			{ id: 42 } as WorkflowRun,
+			ARTIFACT_NAME,
+		);
+
+		expect(reports).toHaveLength(1);
+		expect(api.downloaded).toEqual(["/artifacts/2/zip"]);
+	});
+
+	it("should keep the reports collected before a download fails", async () => {
+		const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+		const api = createArtifactsApi(
+			[createArtifact(1, ARTIFACT_NAME), createArtifact(2, ARTIFACT_NAME)],
+			{ goneIds: [1] },
+		);
+		stub.fetch = api.fetch;
+
+		const reports = await processArtifactsFromRun(
+			{ id: 42 } as WorkflowRun,
+			ARTIFACT_NAME,
+		);
+
+		expect(reports).toHaveLength(1);
+		expect(api.downloaded).toEqual(["/artifacts/1/zip", "/artifacts/2/zip"]);
+		expect(logged).toHaveBeenCalledOnce();
+		logged.mockRestore();
+	});
+
+	it("should keep the reports collected before an unreadable artifact", async () => {
+		const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+		const api = createArtifactsApi(
+			[createArtifact(1, ARTIFACT_NAME), createArtifact(2, ARTIFACT_NAME)],
+			{ corruptIds: [1] },
+		);
+		stub.fetch = api.fetch;
+
+		const reports = await processArtifactsFromRun(
+			{ id: 42 } as WorkflowRun,
+			ARTIFACT_NAME,
+		);
+
+		expect(reports).toHaveLength(1);
+		expect(logged).toHaveBeenCalledOnce();
+		logged.mockRestore();
+	});
+
 	it("should find the report on a later page when the name filter is ignored", async () => {
 		const api = createArtifactsApi(
 			[
@@ -244,7 +320,7 @@ describe("processArtifactsFromRun", () => {
 				),
 				createArtifact(201, ARTIFACT_NAME),
 			],
-			false,
+			{ honoursNameFilter: false },
 		);
 		stub.fetch = api.fetch;
 

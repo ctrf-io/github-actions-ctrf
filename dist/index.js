@@ -183296,7 +183296,10 @@ async function processArtifactsFromRun(workflowRun, artifactName) {
     artifactName
   );
   for (const artifact of artifacts) {
-    if (artifact.name === artifactName) {
+    if (artifact.name !== artifactName || artifact.expired) {
+      continue;
+    }
+    try {
       const artifactBuffer = await downloadArtifact(
         artifact.archive_download_url
       );
@@ -183304,6 +183307,11 @@ async function processArtifactsFromRun(workflowRun, artifactName) {
       if (report !== null) {
         reports.push(report);
       }
+    } catch (error2) {
+      console.error(
+        `Failed to process artifact ${artifact.id} of run ${workflowRun.id}:`,
+        error2
+      );
     }
   }
   return reports;
