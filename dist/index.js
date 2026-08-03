@@ -183288,24 +183288,21 @@ async function downloadArtifact(downloadUrl) {
   return Buffer.from(artifactResponse.data);
 }
 async function processArtifactsFromRun(workflowRun, artifactName) {
-  const reports = [];
   const artifacts = await fetchArtifacts(
     context2.repo.owner,
     context2.repo.repo,
     workflowRun.id,
     artifactName
   );
-  for (const artifact of artifacts) {
-    if (artifact.name !== artifactName || artifact.expired) {
-      continue;
-    }
+  const attempts = artifacts.filter((artifact) => artifact.name === artifactName && !artifact.expired).sort((first, second) => second.id - first.id);
+  for (const artifact of attempts) {
     try {
       const artifactBuffer = await downloadArtifact(
         artifact.archive_download_url
       );
       const report = unzipArtifact(artifactBuffer);
       if (report !== null) {
-        reports.push(report);
+        return [report];
       }
     } catch (error2) {
       console.error(
@@ -183314,7 +183311,7 @@ async function processArtifactsFromRun(workflowRun, artifactName) {
       );
     }
   }
-  return reports;
+  return [];
 }
 function unzipArtifact(artifactBuffer) {
   const zip = new import_adm_zip.default(artifactBuffer);

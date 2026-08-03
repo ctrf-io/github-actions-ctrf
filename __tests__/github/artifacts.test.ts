@@ -275,11 +275,27 @@ describe("processArtifactsFromRun", () => {
 		expect(api.downloaded).toEqual(["/artifacts/2/zip"]);
 	});
 
-	it("should keep the reports collected before a download fails", async () => {
+	it("should report only the latest attempt of a re-run", async () => {
+		const api = createArtifactsApi([
+			createArtifact(1, ARTIFACT_NAME),
+			createArtifact(2, ARTIFACT_NAME),
+		]);
+		stub.fetch = api.fetch;
+
+		const reports = await processArtifactsFromRun(
+			{ id: 42 } as WorkflowRun,
+			ARTIFACT_NAME,
+		);
+
+		expect(reports).toHaveLength(1);
+		expect(api.downloaded).toEqual(["/artifacts/2/zip"]);
+	});
+
+	it("should fall back to an earlier attempt when the download fails", async () => {
 		const logged = vi.spyOn(console, "error").mockImplementation(() => {});
 		const api = createArtifactsApi(
 			[createArtifact(1, ARTIFACT_NAME), createArtifact(2, ARTIFACT_NAME)],
-			{ goneIds: [1] },
+			{ goneIds: [2] },
 		);
 		stub.fetch = api.fetch;
 
@@ -289,16 +305,16 @@ describe("processArtifactsFromRun", () => {
 		);
 
 		expect(reports).toHaveLength(1);
-		expect(api.downloaded).toEqual(["/artifacts/1/zip", "/artifacts/2/zip"]);
+		expect(api.downloaded).toEqual(["/artifacts/2/zip", "/artifacts/1/zip"]);
 		expect(logged).toHaveBeenCalledOnce();
 		logged.mockRestore();
 	});
 
-	it("should keep the reports collected before an unreadable artifact", async () => {
+	it("should fall back to an earlier attempt when the artifact is unreadable", async () => {
 		const logged = vi.spyOn(console, "error").mockImplementation(() => {});
 		const api = createArtifactsApi(
 			[createArtifact(1, ARTIFACT_NAME), createArtifact(2, ARTIFACT_NAME)],
-			{ corruptIds: [1] },
+			{ corruptIds: [2] },
 		);
 		stub.fetch = api.fetch;
 
