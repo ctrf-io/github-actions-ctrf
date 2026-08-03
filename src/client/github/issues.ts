@@ -79,12 +79,12 @@ export async function listComments(
 	issue_number: number,
 ): Promise<IssueComment[]> {
 	const octokit = await createGitHubClient();
-	const response = await octokit.issues.listComments({
+	return octokit.paginate(octokit.issues.listComments, {
 		owner,
 		repo,
 		issue_number,
+		per_page: 100,
 	});
-	return response.data;
 }
 
 /**

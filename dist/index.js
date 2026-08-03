@@ -150291,12 +150291,12 @@ async function updateComment(comment_id, owner, repo, issue_number, body2) {
 }
 async function listComments(owner, repo, issue_number) {
   const octokit = await createGitHubClient();
-  const response = await octokit.issues.listComments({
+  return octokit.paginate(octokit.issues.listComments, {
     owner,
     repo,
-    issue_number
+    issue_number,
+    per_page: 100
   });
-  return response.data;
 }
 async function deleteComment(comment_id, owner, repo, issue_number) {
   const octokit = await createGitHubClient();
