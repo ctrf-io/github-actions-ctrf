@@ -29,6 +29,7 @@ export function getInputs(): Inputs {
 		githubReport: core.getInput("github-report").toLowerCase() === "true",
 		pullRequest: core.getInput("pull-request").toLowerCase() === "true",
 		issue: core.getInput("issue").toLowerCase() || "",
+		issueRepo: core.getInput("issue-repo") || "",
 		collapseLargeReports:
 			core.getInput("collapse-large-reports").toLowerCase() === "true",
 		summaryReport: core.getInput("summary-report").toLowerCase() === "true",

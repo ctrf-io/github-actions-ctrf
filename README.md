@@ -183,6 +183,7 @@ For more advanced usage, there are several inputs available.
     summary: true # Post report to the job summary. Default is true
     pull-request: false # Comment on pull request with report. Default is false
     issue: '' # Issue number to comment on. Works with standard issues and pull-request. Default is no issue
+    issue-repo: '' # Repository containing the issue or pull request to comment on, in owner/repo format. Default is the repository running the workflow
     status-check: false # Create a status check for the workflow. Default is false
     status-check-name: 'Test Reporter Results' # Name of the status check. Default is GitHub Test Reporter Results 
     community-report-name: 'summary-short' # Name of the community report to use. Default is summary-short
@@ -272,6 +273,24 @@ input and providing the issue number ():
 ```
 
 Requires a `GITHUB_TOKEN` with issue or pull request write permission.
+
+The issue or pull request can live in a different repository than the one
+running the workflow — useful when an orchestration repository runs the tests
+but the results belong on a pull request in another repository. Set
+`issue-repo` in `owner/repo` format and provide a token with write access to
+that repository:
+
+```yaml
+- name: Publish Test Report
+  uses: ctrf-io/github-test-reporter@v1
+  with:
+    report-path: './ctrf/*.json'
+    issue: '123'
+    issue-repo: 'my-org/my-other-repo'
+  env:
+    GITHUB_TOKEN: ${{ secrets.CROSS_REPO_TOKEN }}
+  if: always()
+```
 
 ### Comment Management Inputs
 

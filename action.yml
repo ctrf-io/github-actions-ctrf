@@ -140,6 +140,14 @@ inputs:
     description: 'Add a comment to the issue number with the generated report.'
     required: false
     default: ''
+  issue-repo:
+    description:
+      'Repository containing the issue or pull request to comment on, in
+      owner/repo format. Defaults to the repository running the workflow.
+      Commenting on another repository requires a token with write access to
+      it.'
+    required: false
+    default: ''
   annotate:
     description: 'Add annotations to failed tests in the GitHub Actions UI.'
     required: false

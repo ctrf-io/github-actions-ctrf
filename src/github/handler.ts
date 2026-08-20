@@ -217,6 +217,31 @@ async function postOrUpdatePRComment(
 }
 
 /**
+ * Resolves the repository that an issue comment should be posted to.
+ *
+ * @param issueRepo - The user-provided `issue-repo` input in `owner/repo` format, or an empty string.
+ * @returns The owner and repository name to comment on.
+ * @throws {Error} If `issueRepo` is set but not in `owner/repo` format.
+ */
+export function resolveIssueRepo(issueRepo: string): {
+	owner: string;
+	repo: string;
+} {
+	if (!issueRepo) {
+		return { owner: context.repo.owner, repo: context.repo.repo };
+	}
+
+	const parts = issueRepo.split("/");
+	if (parts.length !== 2 || !parts[0] || !parts[1]) {
+		throw new Error(
+			`Invalid issue-repo "${issueRepo}" - expected "owner/repo" format`,
+		);
+	}
+
+	return { owner: parts[0], repo: parts[1] };
+}
+
+/**
  * Posts or updates a comment on an issue.
  *
  * @param inputs - The user-provided inputs for configuring the comment behavior.
@@ -231,9 +256,10 @@ async function postOrUpdateIssueComment(
 	const newSummary = core.summary.stringify();
 
 	try {
+		const { owner, repo } = resolveIssueRepo(inputs.issueRepo);
 		await handleComment(
-			context.repo.owner,
-			context.repo.repo,
+			owner,
+			repo,
 			parseInt(inputs.issue, 10),
 			newSummary,
 			marker,
@@ -259,6 +285,7 @@ async function postOrUpdateIssueComment(
 					"    runs-on: ubuntu-latest\n" +
 					"    permissions:\n" +
 					"      issues: write\n\n" +
+					"When commenting on an issue in another repository via the issue-repo input, GITHUB_TOKEN must be a token with write access to that repository.\n" +
 					"See documentation: https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token",
 			);
 		} else if (error instanceof Error) {

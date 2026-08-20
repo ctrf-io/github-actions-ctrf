@@ -200610,6 +200610,7 @@ function getInputs() {
     githubReport: getInput("github-report").toLowerCase() === "true",
     pullRequest: getInput("pull-request").toLowerCase() === "true",
     issue: getInput("issue").toLowerCase() || "",
+    issueRepo: getInput("issue-repo") || "",
     collapseLargeReports: getInput("collapse-large-reports").toLowerCase() === "true",
     summaryReport: getInput("summary-report").toLowerCase() === "true",
     summaryDeltaReport: getInput("summary-delta-report").toLowerCase() === "true",
@@ -200814,13 +200815,26 @@ For forked PRs, you should use the pull_request_target event instead of pull_req
     }
   }
 }
+function resolveIssueRepo(issueRepo) {
+  if (!issueRepo) {
+    return { owner: context2.repo.owner, repo: context2.repo.repo };
+  }
+  const parts = issueRepo.split("/");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    throw new Error(
+      `Invalid issue-repo "${issueRepo}" - expected "owner/repo" format`
+    );
+  }
+  return { owner: parts[0], repo: parts[1] };
+}
 async function postOrUpdateIssueComment(inputs, marker2) {
   info("Posting or updating issue comment");
   const newSummary = summary.stringify();
   try {
+    const { owner, repo } = resolveIssueRepo(inputs.issueRepo);
     await handleComment(
-      context2.repo.owner,
-      context2.repo.repo,
+      owner,
+      repo,
       parseInt(inputs.issue, 10),
       newSummary,
       marker2,
@@ -200845,6 +200859,7 @@ jobs:
     permissions:
       issues: write
 
+When commenting on an issue in another repository via the issue-repo input, GITHUB_TOKEN must be a token with write access to that repository.
 See documentation: https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token`
       );
     } else if (error2 instanceof Error) {

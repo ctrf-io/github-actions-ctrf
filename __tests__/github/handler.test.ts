@@ -7,6 +7,7 @@ import {
 	findExistingMarkedComment,
 	handleComment,
 	handleViewsAndComments,
+	resolveIssueRepo,
 } from "../../src/github/handler.js";
 import type { Inputs } from "../../src/types/index.js";
 import type { Report } from "../../src/ctrf/core/types/ctrf.js";
@@ -739,4 +740,29 @@ describe("handleViewsAndComments", () => {
 
 		expect(mockCore.setOutput).toHaveBeenCalledTimes(2);
 	});
+});
+
+describe("resolveIssueRepo", () => {
+	it("should fall back to the workflow repository when issue-repo is empty", () => {
+		expect(resolveIssueRepo("")).toEqual({
+			owner: "test-owner",
+			repo: "test-repo",
+		});
+	});
+
+	it("should resolve owner and repo from an owner/repo value", () => {
+		expect(resolveIssueRepo("some-org/some-repo")).toEqual({
+			owner: "some-org",
+			repo: "some-repo",
+		});
+	});
+
+	it.each(["no-slash", "too/many/slashes", "/missing-owner", "missing-repo/"])(
+		"should throw for malformed issue-repo %s",
+		(value) => {
+			expect(() => resolveIssueRepo(value)).toThrow(
+				`Invalid issue-repo "${value}" - expected "owner/repo" format`,
+			);
+		},
+	);
 });

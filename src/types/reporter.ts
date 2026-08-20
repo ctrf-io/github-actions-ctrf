@@ -6,6 +6,7 @@ export interface Inputs {
 	summary: boolean;
 	pullRequest: boolean;
 	issue: string;
+	issueRepo: string;
 	collapseLargeReports: boolean;
 	summaryReport: boolean;
 	summaryDeltaReport: boolean;
