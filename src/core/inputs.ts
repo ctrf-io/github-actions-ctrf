@@ -77,6 +77,14 @@ export function getInputs(): Inputs {
 			core.getInput("previous-results-max") || "10",
 			10,
 		),
+		flakyRateReportMax: parseInt(
+			core.getInput("flaky-rate-report-max") || "-1",
+			10,
+		),
+		failRateReportMax: parseInt(
+			core.getInput("fail-rate-report-max") || "-1",
+			10,
+		),
 		metricsReportsMax: parseInt(
 			core.getInput("metrics-reports-max") || "100",
 			10,

@@ -1,4 +1,11 @@
-import { getEmoji, normalizeSuite, stripAnsi } from "../../src/ctrf/helpers.js";
+import {
+	getEmoji,
+	limitFailRateReport,
+	limitFlakyRateReport,
+	normalizeSuite,
+	stripAnsi,
+} from "../../src/ctrf/helpers.js";
+import type { CTRFReport } from "ctrf";
 
 describe("getEmoji", () => {
 	it('returns the correct emoji for "passed"', () => {
@@ -79,6 +86,106 @@ describe("normalizeSuite", () => {
 	it("handles empty string", () => {
 		const result = normalizeSuite("");
 		expect(result).toBeUndefined();
+	});
+});
+
+describe("limitFlakyRateReport", () => {
+	function makeReport(): CTRFReport {
+		return {
+			results: {
+				tests: [
+					{ name: "low", insights: { flakyRate: { current: 0.1 } } },
+					{ name: "high", insights: { flakyRate: { current: 0.5 } } },
+					{ name: "stable", insights: { flakyRate: { current: 0 } } },
+					{ name: "missing" },
+				],
+			},
+		} as unknown as CTRFReport;
+	}
+
+	it("limits flaky tests by descending flaky rate without changing the source report", () => {
+		const report = makeReport();
+
+		const limitedReport = limitFlakyRateReport(report, 1);
+
+		expect(limitedReport.results.tests.map((test) => test.name)).toEqual([
+			"high",
+		]);
+		expect(report.results.tests).toHaveLength(4);
+	});
+
+	it("returns the original report when the limit is zero or negative", () => {
+		const report = makeReport();
+
+		expect(limitFlakyRateReport(report, 0)).toBe(report);
+		expect(limitFlakyRateReport(report, -1)).toBe(report);
+	});
+
+	it("returns all positive flaky-rate tests when the limit exceeds the matches", () => {
+		const report = makeReport();
+
+		const limitedReport = limitFlakyRateReport(report, 10);
+
+		expect(limitedReport.results.tests.map((test) => test.name)).toEqual([
+			"high",
+			"low",
+		]);
+	});
+
+	it("returns the original report when tests are unavailable", () => {
+		const report = { results: {} } as unknown as CTRFReport;
+
+		expect(limitFlakyRateReport(report, 1)).toBe(report);
+	});
+});
+
+describe("limitFailRateReport", () => {
+	function makeReport(): CTRFReport {
+		return {
+			results: {
+				tests: [
+					{ name: "low", insights: { failRate: { current: 0.1 } } },
+					{ name: "high", insights: { failRate: { current: 0.5 } } },
+					{ name: "stable", insights: { failRate: { current: 0 } } },
+					{ name: "missing" },
+				],
+			},
+		} as unknown as CTRFReport;
+	}
+
+	it("limits failed tests by descending fail rate without changing the source report", () => {
+		const report = makeReport();
+
+		const limitedReport = limitFailRateReport(report, 1);
+
+		expect(limitedReport.results.tests.map((test) => test.name)).toEqual([
+			"high",
+		]);
+		expect(report.results.tests).toHaveLength(4);
+	});
+
+	it("returns the original report when the limit is zero or negative", () => {
+		const report = makeReport();
+
+		expect(limitFailRateReport(report, 0)).toBe(report);
+		expect(limitFailRateReport(report, -1)).toBe(report);
+	});
+
+	it("returns all positive fail-rate tests when the limit exceeds the matches", () => {
+		const report = makeReport();
+
+		const limitedReport = limitFailRateReport(report, 10);
+
+		expect(limitedReport.results.tests.map((test) => test.name)).toEqual([
+			"high",
+			"low",
+		]);
+	});
+
+	it("returns the original report when tests are unavailable", () => {
+		const report = { results: {} } as unknown as CTRFReport;
+
+		expect(limitFailRateReport(report, 1)).toBe(report);
 	});
 });
 

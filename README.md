@@ -205,6 +205,8 @@ For more advanced usage, there are several inputs available.
     # Advanced Options
     artifact-name: 'ctrf-report' # Name of the artifact containing test reports. Default is ctrf-report
     previous-results-max: 10 # Maximum number of previous test results to display in the report. Default is 10
+    flaky-rate-report-max: -1 # Maximum number of flaky tests to display in the flaky rate report. Default is -1 (all results)
+    fail-rate-report-max: -1 # Maximum number of failed tests to display in the fail rate report. Default is -1 (all results)
     fetch-previous-results: false # Always fetch previous workflow runs when using custom templates. Default is false
     max-workflow-runs-to-check: 400 # Maximum number of workflow runs to check for previous results. Default is 400
     max-previous-runs-to-fetch: 100 # Maximum number of previous runs to fetch and process for metrics and reports. Default is 100

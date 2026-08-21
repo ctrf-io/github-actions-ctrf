@@ -50,6 +50,72 @@ export function limitPreviousReports(
 }
 
 /**
+ * Limits the tests included in the flaky rate report to a specified maximum.
+ *
+ * @param report - The CTRF report to modify.
+ * @param maxFlakyTests - The maximum number of flaky tests to include.
+ * @returns The updated CTRF report with the limited flaky tests.
+ */
+export function limitFlakyRateReport(
+	report: CTRFReport,
+	maxFlakyTests: number,
+): CTRFReport {
+	if (!report.results?.tests || maxFlakyTests <= 0) {
+		return report;
+	}
+
+	const flakyTests = report.results.tests
+		.filter((test) => test.insights?.flakyRate?.current > 0)
+		.sort(
+			(a, b) =>
+				(b.insights?.flakyRate?.current ?? 0) -
+				(a.insights?.flakyRate?.current ?? 0),
+		)
+		.slice(0, maxFlakyTests);
+
+	return {
+		...report,
+		results: {
+			...report.results,
+			tests: flakyTests,
+		},
+	};
+}
+
+/**
+ * Limits the tests included in the fail rate report to a specified maximum.
+ *
+ * @param report - The CTRF report to modify.
+ * @param maxFailedTests - The maximum number of failed tests to include.
+ * @returns The updated CTRF report with the limited failed tests.
+ */
+export function limitFailRateReport(
+	report: CTRFReport,
+	maxFailedTests: number,
+): CTRFReport {
+	if (!report.results?.tests || maxFailedTests <= 0) {
+		return report;
+	}
+
+	const failedTests = report.results.tests
+		.filter((test) => test.insights?.failRate?.current > 0)
+		.sort(
+			(a, b) =>
+				(b.insights?.failRate?.current ?? 0) -
+				(a.insights?.failRate?.current ?? 0),
+		)
+		.slice(0, maxFailedTests);
+
+	return {
+		...report,
+		results: {
+			...report.results,
+			tests: failedTests,
+		},
+	};
+}
+
+/**
  * Retrieves an emoji representation for a given test state or category.
  *
  * @param status - The test state or category to get an emoji for.

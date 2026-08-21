@@ -42,6 +42,8 @@ export interface Inputs {
 	exitOnFail: boolean;
 	useSuiteName: boolean;
 	previousResultsMax: number;
+	flakyRateReportMax: number;
+	failRateReportMax: number;
 	metricsReportsMax: number;
 	maxWorkflowRunsToCheck: number;
 	maxPreviousRunsToFetch: number;

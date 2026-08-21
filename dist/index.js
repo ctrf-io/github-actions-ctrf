@@ -150008,6 +150008,36 @@ function limitPreviousReports(report, maxPreviousReports) {
   );
   return report;
 }
+function limitFlakyRateReport(report, maxFlakyTests) {
+  if (!report.results?.tests || maxFlakyTests <= 0) {
+    return report;
+  }
+  const flakyTests = report.results.tests.filter((test) => test.insights?.flakyRate?.current > 0).sort(
+    (a6, b6) => (b6.insights?.flakyRate?.current ?? 0) - (a6.insights?.flakyRate?.current ?? 0)
+  ).slice(0, maxFlakyTests);
+  return {
+    ...report,
+    results: {
+      ...report.results,
+      tests: flakyTests
+    }
+  };
+}
+function limitFailRateReport(report, maxFailedTests) {
+  if (!report.results?.tests || maxFailedTests <= 0) {
+    return report;
+  }
+  const failedTests = report.results.tests.filter((test) => test.insights?.failRate?.current > 0).sort(
+    (a6, b6) => (b6.insights?.failRate?.current ?? 0) - (a6.insights?.failRate?.current ?? 0)
+  ).slice(0, maxFailedTests);
+  return {
+    ...report,
+    results: {
+      ...report.results,
+      tests: failedTests
+    }
+  };
+}
 function getEmoji(status) {
   switch (status) {
     case "passed":
@@ -200416,7 +200446,11 @@ function generateReportByType(reportType, inputs, report) {
     case "fail-rate-report":
       if (reportConditionals?.showFailedReports) {
         info("Adding fail rate report to summary");
-        addViewToSummary("### Fail Rate", BuiltInReports.FailRateTable, report);
+        addViewToSummary(
+          inputs.failRateReportMax > 0 ? `### Fail Rate - Top ${inputs.failRateReportMax} ` : "### Fail Rate",
+          BuiltInReports.FailRateTable,
+          limitFailRateReport(report, inputs.failRateReportMax)
+        );
       } else {
         info("No failed tests to display, skipping fail-rate-report");
       }
@@ -200445,9 +200479,9 @@ function generateReportByType(reportType, inputs, report) {
       if (reportConditionals?.showFlakyReports) {
         info("Adding flaky rate report to summary");
         addViewToSummary(
-          "### Flaky Rate",
+          inputs.flakyRateReportMax > 0 ? `### Flaky Rate - Top ${inputs.flakyRateReportMax} ` : "### Flaky Rate",
           BuiltInReports.FlakyRateTable,
-          report
+          limitFlakyRateReport(report, inputs.flakyRateReportMax)
         );
       } else {
         info("No flaky tests to display, skipping flaky-rate-report");
@@ -200646,6 +200680,14 @@ function getInputs() {
     useSuiteName: getInput("use-suite-name").toLowerCase() === "true",
     previousResultsMax: parseInt(
       getInput("previous-results-max") || "10",
+      10
+    ),
+    flakyRateReportMax: parseInt(
+      getInput("flaky-rate-report-max") || "-1",
+      10
+    ),
+    failRateReportMax: parseInt(
+      getInput("fail-rate-report-max") || "-1",
       10
     ),
     metricsReportsMax: parseInt(

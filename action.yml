@@ -228,6 +228,14 @@ inputs:
       Includes test results from current run'
     required: false
     default: 10
+  flaky-rate-report-max:
+    description: 'Maximum number of flaky tests to display in the flaky rate report.'
+    required: false
+    default: -1
+  fail-rate-report-max:
+    description: 'Maximum number of failed tests to display in the fail rate report.'
+    required: false
+    default: -1
   fetch-previous-results:
     description:
       'Always fetch previous workflow runs when using custom templates.'

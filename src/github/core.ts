@@ -1,5 +1,11 @@
 import * as core from "@actions/core";
-import { limitPreviousReports, stripAnsi, getEmoji } from "../ctrf/index.js";
+import {
+	limitFailRateReport,
+	limitFlakyRateReport,
+	limitPreviousReports,
+	stripAnsi,
+	getEmoji,
+} from "../ctrf/index.js";
 import { generateMarkdown } from "../handlebars/core.js";
 import type {
 	Inputs,
@@ -278,7 +284,13 @@ function generateReportByType(
 		case "fail-rate-report":
 			if (reportConditionals?.showFailedReports) {
 				core.info("Adding fail rate report to summary");
-				addViewToSummary("### Fail Rate", BuiltInReports.FailRateTable, report);
+				addViewToSummary(
+					inputs.failRateReportMax > 0
+						? `### Fail Rate - Top ${inputs.failRateReportMax} `
+						: "### Fail Rate",
+					BuiltInReports.FailRateTable,
+					limitFailRateReport(report, inputs.failRateReportMax),
+				);
 			} else {
 				core.info("No failed tests to display, skipping fail-rate-report");
 			}
@@ -307,9 +319,11 @@ function generateReportByType(
 			if (reportConditionals?.showFlakyReports) {
 				core.info("Adding flaky rate report to summary");
 				addViewToSummary(
-					"### Flaky Rate",
+					inputs.flakyRateReportMax > 0
+						? `### Flaky Rate - Top ${inputs.flakyRateReportMax} `
+						: "### Flaky Rate",
 					BuiltInReports.FlakyRateTable,
-					report,
+					limitFlakyRateReport(report, inputs.flakyRateReportMax),
 				);
 			} else {
 				core.info("No flaky tests to display, skipping flaky-rate-report");
