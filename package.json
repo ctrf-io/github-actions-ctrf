@@ -50,7 +50,7 @@
 		"@octokit/plugin-retry": "8.1.0",
 		"@octokit/rest": "22.0.1",
 		"@types/adm-zip": "0.5.8",
-		"adm-zip": "0.5.17",
+		"adm-zip": "0.6.0",
 		"ai-ctrf": "0.0.17",
 		"ansi-to-html": "0.7.2",
 		"ctrf": "0.2.1",
