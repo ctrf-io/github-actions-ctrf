@@ -47,7 +47,7 @@
 		"@actions/artifact": "6.2.1",
 		"@actions/core": "3.0.1",
 		"@actions/github": "9.1.1",
-		"@octokit/plugin-retry": "8.1.0",
+		"@octokit/plugin-retry": "8.1.1",
 		"@octokit/rest": "22.0.1",
 		"@types/adm-zip": "0.5.8",
 		"adm-zip": "0.5.17",
